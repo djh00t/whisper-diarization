@@ -54,7 +54,7 @@ def transcribe_batched(
     canary_model.change_decoding_strategy(decode_cfg)
 
     # Load audio and convert to MonoCut
-    audio = load_audio(audio_file)
+    audio = AudioSource.from_file(audio_file)
     cut = MonoCut(id="cut", start=0, duration=len(audio) / 16000, channel=0, recording=audio)
 
     # Create a CutSet
