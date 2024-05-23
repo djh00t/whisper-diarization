@@ -24,6 +24,15 @@
 
 
 # 
+This is a fork of [whisper-diarization](MahmoudAshraf97/whisper-diarization) by
+[@MahmoudAshraf97](https://github.com/MahmoudAshraf97/whisper-diarization).
+
+This fork is focussed on delivering an easy to use API endpoint that accurately
+transcribes and diarizes audio files. The API is built using FastAPI,
+transcription and diarization is done using Whisper (and maybe Canary) and NeMo
+models.
+
+
 Speaker Diarization pipeline based on OpenAI Whisper
 I'd like to thank [@m-bain](https://github.com/m-bain) for Batched Whisper Inference, [@mu4farooqi](https://github.com/mu4farooqi) for punctuation realignment algorithm
 
