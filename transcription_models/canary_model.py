@@ -54,11 +54,14 @@ def transcribe_batched(
     decode_cfg.beam.beam_size = 1
     canary_model.change_decoding_strategy(decode_cfg)
 
-    # Load audio
+    # Load audio and convert to MonoCut
+    waveform, sample_rate = torchaudio.load(audio_file)
+    audio = MonoCut(id="cut", start=0, duration=waveform.shape[1] / sample_rate, channel=0, recording=waveform)
+    cut = MonoCut(id="cut", start=0, duration=waveform.shape[1] / sample_rate, channel=0, recording=audio)
+
+    # Create a CutSet
+    cut_set = CutSet.from_cuts([cut])
     waveform, sample_rate = torchaudio.load(audio_file)
 
-    predicted_text = canary_model.transcribe(
-        paths2audio_files=[audio_file],
-        batch_size=batch_size,  # Batched inference
-    )
+    predicted_text = canary_model.transcribe(cut_set)
     return predicted_text, language
