@@ -27,7 +27,7 @@ def transcribe(
     # Load audio and convert to MonoCut
     waveform, sample_rate = torchaudio.load(audio_file)
     audio = MonoCut(id="cut", start=0, duration=waveform.shape[1] / sample_rate, channel=0, recording=waveform)
-    cut = MonoCut(id="cut", start=0, duration=len(audio) / 16000, channel=0, recording=audio)
+    cut = MonoCut(id="cut", start=0, duration=waveform.shape[1] / sample_rate, channel=0, recording=audio)
 
     # Create a CutSet
     cut_set = CutSet.from_cuts([cut])
