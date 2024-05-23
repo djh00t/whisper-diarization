@@ -63,5 +63,5 @@ def transcribe_batched(
     cut_set = CutSet.from_cuts([cut])
     waveform, sample_rate = torchaudio.load(audio_file)
 
-    predicted_text = canary_model.transcribe(cut_set)
+    predicted_text = canary_model.transcribe(paths2audio_files=[audio_file])
     return predicted_text, language
