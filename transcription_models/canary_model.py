@@ -62,7 +62,7 @@ def transcribe_batched(
     # Create a CutSet
     cut_set = CutSet.from_cuts([cut])
     predicted_text = canary_model.transcribe(
-        cut_set,
+        paths2audio_files=[audio_file],
         batch_size=batch_size,  # Batched inference
     )
     return predicted_text, language
