@@ -60,6 +60,7 @@ def transcribe_batched(
     suppress_numerals: bool,
     device: str,
 ):
+    import os
     import whisperx
 
     # Ensure the model files are downloaded
