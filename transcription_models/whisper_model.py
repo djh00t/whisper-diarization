@@ -65,7 +65,7 @@ def transcribe_batched(
 
     # Ensure the model files are downloaded
     import whisperx
-    from whisperx.utils import download_model
+    from whisperx.whisper import download_model
 
     model_dir = whisperx.utils.get_model_dir(model_name)
     if not os.path.exists(os.path.join(model_dir, "model.bin")):
