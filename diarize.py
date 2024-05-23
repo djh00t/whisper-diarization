@@ -83,7 +83,20 @@ parser.add_argument(
     help="if you have a GPU use 'cuda', otherwise 'cpu'",
 )
 
+parser.add_argument(
+    "--transcription-model",
+    type=str,
+    default="whisper",
+    choices=["whisper", "canary"],
+    help="Choose the transcription model to use: 'whisper' or 'canary'",
+)
+
 args = parser.parse_args()
+
+if args.transcription_model == "whisper":
+    from transcription_models.whisper_model import transcribe_batched
+elif args.transcription_model == "canary":
+    from transcription_models.canary_model import transcribe_batched
 
 if args.stemming:
     # Isolate vocals from the rest of the audio
