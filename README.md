@@ -75,7 +75,7 @@ pip install -r requirements.txt
 ## Usage 
 
 ```
-python diarize.py -a AUDIO_FILE_NAME --transcription-model whisper --whisper-model medium.en
+python diarize.py -a AUDIO_FILE_NAME --transcription-model whisper --whisper-model small
 python diarize.py -a AUDIO_FILE_NAME --transcription-model canary --canary-model canary-1b
 ```
 
@@ -85,7 +85,7 @@ If your system has enough VRAM (>=10GB), you can use `diarize_parallel.py` inste
 
 - `-a AUDIO_FILE_NAME`: The name of the audio file to be processed
 - `--no-stem`: Disables source separation
-- `--whisper-model`: The model to be used for ASR when using Whisper, default is `medium.en`
+- `--whisper-model`: The model to be used for ASR when using Whisper, default is `small`
 - `--canary-model`: The model to be used for ASR when using Canary, default is `canary-1b`
 - `--transcription-model`: Choose the transcription model to use: 'whisper' or 'canary'
 - `--suppress_numerals`: Transcribes numbers in their pronounced letters instead of digits, improves alignment accuracy
