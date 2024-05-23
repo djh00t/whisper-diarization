@@ -99,7 +99,7 @@ args = parser.parse_args()
 
 if args.transcription_model == "whisper":
     from transcription_models.whisper_model import transcribe_batched
-    model_name = args.model_name
+    model_name = args.canary_model_name
 elif args.transcription_model == "canary":
     from transcription_models.canary_model import transcribe_batched
     model_name = args.canary_model_name
@@ -179,7 +179,7 @@ args = parser.parse_args()
 
 if args.transcription_model == "whisper":
     from transcription_models.whisper_model import transcribe_batched
-    model_name = args.model_name
+    model_name = args.canary_model_name
 elif args.transcription_model == "canary":
     from transcription_models.canary_model import transcribe_batched
     model_name = args.canary_model_name
