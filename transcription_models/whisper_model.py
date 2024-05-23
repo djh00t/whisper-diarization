@@ -2,6 +2,21 @@ import torch
 from faster_whisper import WhisperModel
 from helpers import find_numeral_symbol_tokens, wav2vec2_langs
 
+# List of available Whisper models
+WHISPER_MODELS = {
+    "whisper-tiny": "openai/whisper-tiny",
+    "whisper-tiny.en": "openai/whisper-tiny.en",
+    "whisper-base": "openai/whisper-base",
+    "whisper-base.en": "openai/whisper-base.en",
+    "whisper-small": "openai/whisper-small",
+    "whisper-small.en": "openai/whisper-small.en",
+    "whisper-medium": "openai/whisper-medium",
+    "whisper-medium.en": "openai/whisper-medium.en",
+    "whisper-large": "openai/whisper-large",
+    "whisper-large-v2": "openai/whisper-large-v2",
+    "whisper-large-v3": "openai/whisper-large-v3",
+}
+
 def transcribe(
     audio_file: str,
     language: str,
