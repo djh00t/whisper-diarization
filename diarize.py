@@ -122,7 +122,7 @@ whisper_results, language, audio_waveform = transcribe_batched(
     vocal_target,
     args.language,
     args.batch_size,
-    args.model_name,
+    model_name,
     mtypes[args.device],
     args.suppress_numerals,
     args.device,
