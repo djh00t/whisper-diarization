@@ -27,6 +27,12 @@ from ctc_forced_aligner import (
     postprocess_results,
 )
 
+# Define mtypes
+mtypes = {
+    "cuda": "float16",
+    "cpu": "float32"
+}
+
 # Initialize parser
 parser = argparse.ArgumentParser()
 parser.add_argument(
