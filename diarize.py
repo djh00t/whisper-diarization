@@ -56,7 +56,7 @@ parser.add_argument(
 parser.add_argument(
     "--whisper-model",
     dest="model_name",
-    default="medium.en",
+    default="small",
     help="name of the Whisper model to use",
 )
 
