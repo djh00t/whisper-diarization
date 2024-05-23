@@ -63,6 +63,9 @@ def transcribe_batched(
 ):
     import whisperx
 
+    # Remove "whisper-" prefix if present
+    if model_name.startswith("whisper-"):
+        model_name = model_name[len("whisper-"):]
     # Faster Whisper batched
     whisper_model = whisperx.load_model(
         model_name,
