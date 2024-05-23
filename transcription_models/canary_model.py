@@ -1,5 +1,6 @@
 from nemo.collections.asr.models import EncDecMultiTaskModel
-from lhotse import load_audio, MonoCut
+from lhotse.audio import load_audio
+from lhotse.cut import MonoCut
 from lhotse.cut import CutSet
 
 # List of available Canary models
