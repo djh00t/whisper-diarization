@@ -1,5 +1,10 @@
 from nemo.collections.asr.models import EncDecMultiTaskModel
 
+# List of available Canary models
+CANARY_MODELS = {
+    "canary-1b": "nvidia/canary-1b",
+}
+
 def transcribe(
     audio_file: str,
     language: str,
