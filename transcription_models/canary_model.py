@@ -52,7 +52,12 @@ def transcribe_batched(
     decode_cfg.beam.beam_size = 1
     canary_model.change_decoding_strategy(decode_cfg)
 
-    # Transcribe audio file using CutSet
+    # Load audio and convert to MonoCut
+    audio = load_audio(audio_file)
+    cut = MonoCut(id="cut", start=0, duration=len(audio) / 16000, channel=0, recording=audio)
+
+    # Create a CutSet
+    cut_set = CutSet.from_cuts([cut])
     predicted_text = canary_model.transcribe(
         cut_set,
         batch_size=batch_size,  # Batched inference
