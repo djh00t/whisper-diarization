@@ -93,14 +93,25 @@ parser.add_argument(
     help="name of the Canary model to use",
 )
 
+parser.add_argument(
+    "--transcription-model",
+    type=str,
+    default="whisper-small",
+    help="Choose the transcription model to use. Available models: whisper-tiny, whisper-tiny.en, whisper-base, whisper-base.en, whisper-small, whisper-small.en, whisper-medium, whisper-medium.en, whisper-large, whisper-large-v2, whisper-large-v3, canary-1b",
+)
+
 args = parser.parse_args()
 
-if args.transcription_model == "whisper":
-    from transcription_models.whisper_model import transcribe_batched
-    model_name = args.model_name
-elif args.transcription_model == "canary":
-    from transcription_models.canary_model import transcribe_batched
-    model_name = args.canary_model_name
+model_name = args.transcription_model.lower()
+
+if model_name.startswith("whisper-"):
+    from transcription_models.whisper_model import transcribe_batched, WHISPER_MODELS
+    model_name = WHISPER_MODELS[model_name]
+elif model_name.startswith("canary-"):
+    from transcription_models.canary_model import transcribe_batched, CANARY_MODELS
+    model_name = CANARY_MODELS[model_name]
+else:
+    raise ValueError(f"Unsupported transcription model: {args.transcription_model}")
 
 mtypes = {"cpu": "int8", "cuda": "float16"}
 
@@ -173,14 +184,25 @@ parser.add_argument(
     help="name of the Canary model to use",
 )
 
+parser.add_argument(
+    "--transcription-model",
+    type=str,
+    default="whisper-small",
+    help="Choose the transcription model to use. Available models: whisper-tiny, whisper-tiny.en, whisper-base, whisper-base.en, whisper-small, whisper-small.en, whisper-medium, whisper-medium.en, whisper-large, whisper-large-v2, whisper-large-v3, canary-1b",
+)
+
 args = parser.parse_args()
 
-if args.transcription_model == "whisper":
-    from transcription_models.whisper_model import transcribe_batched
-    model_name = args.model_name
-elif args.transcription_model == "canary":
-    from transcription_models.canary_model import transcribe_batched
-    model_name = args.canary_model_name
+model_name = args.transcription_model.lower()
+
+if model_name.startswith("whisper-"):
+    from transcription_models.whisper_model import transcribe_batched, WHISPER_MODELS
+    model_name = WHISPER_MODELS[model_name]
+elif model_name.startswith("canary-"):
+    from transcription_models.canary_model import transcribe_batched, CANARY_MODELS
+    model_name = CANARY_MODELS[model_name]
+else:
+    raise ValueError(f"Unsupported transcription model: {args.transcription_model}")
 
 if args.transcription_model == "whisper":
     from transcription_models.whisper_model import transcribe_batched
