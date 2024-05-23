@@ -26,6 +26,7 @@ def transcribe(
     device: str,
 ):
     # Faster Whisper non-batched
+    print(model_name)
     whisper_model = WhisperModel(model_name, device=device, compute_type=compute_dtype)
 
     if suppress_numerals:
@@ -60,17 +61,9 @@ def transcribe_batched(
     suppress_numerals: bool,
     device: str,
 ):
-    import os
     import whisperx
 
-    # Ensure the model files are downloaded
-    import whisperx
-    from whisperx.utils import download_model
-
-    model_dir = whisperx.utils.get_model_dir(model_name)
-    if not os.path.exists(os.path.join(model_dir, "model.bin")):
-        download_model(model_name, model_dir)
-
+    # Faster Whisper batched
     whisper_model = whisperx.load_model(
         model_name,
         device,
