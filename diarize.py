@@ -26,6 +26,7 @@ from ctc_forced_aligner import (
     get_spans,
     postprocess_results,
 )
+
 # Initialize parser
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -47,13 +48,6 @@ parser.add_argument(
     default=False,
     help="Suppresses Numerical Digits."
     "This helps the diarization accuracy but converts all digits into written text.",
-)
-
-parser.add_argument(
-    "--whisper-model",
-    dest="model_name",
-    default="small",
-    help="name of the Whisper model to use",
 )
 
 parser.add_argument(
@@ -82,112 +76,22 @@ parser.add_argument(
 parser.add_argument(
     "--transcription-model",
     type=str,
-    default="whisper",
-    choices=["whisper", "canary"],
-    help="Choose the transcription model to use: 'whisper' or 'canary'",
-)
-
-parser.add_argument(
-    "--canary-model",
-    dest="canary_model_name",
-    default="canary-1b",
-    choices=["canary-1b"],
-    help="name of the Canary model to use",
+    default="whisper-small",
+    help="Choose the transcription model to use. Available models: whisper-tiny, whisper-tiny.en, whisper-base, whisper-base.en, whisper-small, whisper-small.en, whisper-medium, whisper-medium.en, whisper-large, whisper-large-v2, whisper-large-v3, canary-1b",
 )
 
 args = parser.parse_args()
 
-if args.transcription_model == "whisper":
-    from transcription_models.whisper_model import transcribe_batched
-    model_name = args.canary_model_name
-elif args.transcription_model == "canary":
-    from transcription_models.canary_model import transcribe_batched
-    model_name = args.canary_model_name
+model_name = args.transcription_model.lower()
 
-mtypes = {"cpu": "int8", "cuda": "float16"}
-
-# Initialize parser
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    "-a", "--audio", help="name of the target audio file", required=True
-)
-parser.add_argument(
-    "--no-stem",
-    action="store_false",
-    dest="stemming",
-    default=True,
-    help="Disables source separation."
-    "This helps with long files that don't contain a lot of music.",
-)
-
-parser.add_argument(
-    "--suppress_numerals",
-    action="store_true",
-    dest="suppress_numerals",
-    default=False,
-    help="Suppresses Numerical Digits."
-    "This helps the diarization accuracy but converts all digits into written text.",
-)
-
-parser.add_argument(
-    "--whisper-model",
-    dest="model_name",
-    default="small",
-    help="name of the Whisper model to use",
-)
-
-parser.add_argument(
-    "--batch-size",
-    type=int,
-    dest="batch_size",
-    default=8,
-    help="Batch size for batched inference, reduce if you run out of memory, set to 0 for non-batched inference",
-)
-
-parser.add_argument(
-    "--language",
-    type=str,
-    default=None,
-    choices=whisper_langs,
-    help="Language spoken in the audio, specify None to perform language detection",
-)
-
-parser.add_argument(
-    "--device",
-    dest="device",
-    default="cuda" if torch.cuda.is_available() else "cpu",
-    help="if you have a GPU use 'cuda', otherwise 'cpu'",
-)
-
-parser.add_argument(
-    "--transcription-model",
-    type=str,
-    default="whisper",
-    choices=["whisper", "canary"],
-    help="Choose the transcription model to use: 'whisper' or 'canary'",
-)
-
-parser.add_argument(
-    "--canary-model",
-    dest="canary_model_name",
-    default="canary-1b",
-    choices=["canary-1b"],
-    help="name of the Canary model to use",
-)
-
-args = parser.parse_args()
-
-if args.transcription_model == "whisper":
-    from transcription_models.whisper_model import transcribe_batched
-    model_name = args.canary_model_name
-elif args.transcription_model == "canary":
-    from transcription_models.canary_model import transcribe_batched
-    model_name = args.canary_model_name
-
-if args.transcription_model == "whisper":
-    from transcription_models.whisper_model import transcribe_batched
-elif args.transcription_model == "canary":
-    from transcription_models.canary_model import transcribe_batched
+if model_name.startswith("whisper-"):
+    from transcription_models.whisper_model import transcribe_batched, WHISPER_MODELS
+    model_name = WHISPER_MODELS[model_name]
+elif model_name.startswith("canary-"):
+    from transcription_models.canary_model import transcribe_batched, CANARY_MODELS
+    model_name = CANARY_MODELS[model_name]
+else:
+    raise ValueError(f"Unsupported transcription model: {args.transcription_model}")
 
 if args.stemming:
     # Isolate vocals from the rest of the audio
