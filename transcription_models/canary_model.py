@@ -1,5 +1,5 @@
 from nemo.collections.asr.models import EncDecMultiTaskModel
-from lhotse import AudioSource
+import torchaudio
 from lhotse.cut import MonoCut
 from lhotse.cut import CutSet
 
@@ -25,7 +25,8 @@ def transcribe(
     canary_model.change_decoding_strategy(decode_cfg)
 
     # Load audio and convert to MonoCut
-    audio = AudioSource.from_file(audio_file)
+    waveform, sample_rate = torchaudio.load(audio_file)
+    audio = MonoCut(id="cut", start=0, duration=waveform.shape[1] / sample_rate, channel=0, recording=waveform)
     cut = MonoCut(id="cut", start=0, duration=len(audio) / 16000, channel=0, recording=audio)
 
     # Create a CutSet
