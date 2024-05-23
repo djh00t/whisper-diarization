@@ -1,3 +1,8 @@
+"""Diarize audio files using Whisper or Canary for transcription and NeMo for diarization.
+
+This script processes an audio file, transcribes it using the specified model, and performs speaker diarization.
+"""
+
 import argparse
 import os
 from helpers import (
