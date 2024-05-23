@@ -26,7 +26,10 @@ from ctc_forced_aligner import (
     get_spans,
     postprocess_results,
 )
-from transcription_helpers import transcribe_batched
+if args.transcription_model == "whisper":
+    from transcription_models.whisper_model import transcribe_batched
+elif args.transcription_model == "canary":
+    from transcription_models.canary_model import transcribe_batched
 
 mtypes = {"cpu": "int8", "cuda": "float16"}
 
