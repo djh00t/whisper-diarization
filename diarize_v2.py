@@ -56,13 +56,6 @@ parser.add_argument(
     "This helps the diarization accuracy but converts all digits into written text.",
 )
 
-parser.add_argument(
-    "--batch-size",
-    type=int,
-    dest="batch_size",
-    default=8,
-    help="Batch size for batched inference, reduce if you run out of memory, set to 0 for non-batched inference",
-)
 
 parser.add_argument(
     "--language",
