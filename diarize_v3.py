@@ -87,25 +87,10 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-model_name = args.transcription_model.lower()
-print("#" * 79)
-print(f"DEBUG: Transcription Model: {model_name}")
-print("#" * 79)
-
-# Model Selection - Check if selected model is Whisper or Canary
-if model_name.startswith("whisper-"):
-    from transcription_models.whisper_model import transcribe_batched as whisper_transcribe_batched, WHISPER_MODELS
-    model = None
-    model_name = WHISPER_MODELS[model_name]
-    print("#" * 79)
-    print(f"DEBUG: Model Name: {model_name}")
-elif model_name.startswith("canary-"):
-    from transcription_models.canary_model_v4 import transcribe_batched as canary_transcribe_batched, CANARY_MODELS
-    model = load_canary_model(CANARY_MODELS[model_name], args.device)
-    print("#" * 79)
-    print(f"DEBUG: Model Name: {model_name}")
-else:
-    raise ValueError(f"Unsupported transcription model: {args.transcription_model}")
+# Handle language detection failure
+if language is None:
+    language = "en"  # Set a default language if detection fails
+    print("WARNING: Language detection failed, defaulting to English (en)")
 
 if args.stemming:
     # Isolate vocals from the rest of the audio
@@ -128,8 +113,20 @@ if args.stemming:
 else:
     vocal_target = args.audio
 
-# Transcribe the audio file
+# Get model name from arguments
+model_name = args.transcription_model.lower()
+logger.info(f"Selected Transcription Model: {model_name}")
+
+# Model Selection - Check if selected model is Whisper or Canary
 if model_name.startswith("whisper-"):
+    # Import Whisper Model
+    logger.info("Loading Whisper Model")
+    from transcription_models.whisper_model import transcribe_batched as whisper_transcribe_batched, WHISPER_MODELS
+    model = None
+    model_name = WHISPER_MODELS[model_name]
+
+    # Transcribe the audio file
+    logger.info("Transcribing Audio File")
     transcribe_results, language, audio_waveform = whisper_transcribe_batched(
         audio_file=vocal_target,
         language=args.language,
@@ -139,7 +136,16 @@ if model_name.startswith("whisper-"):
         suppress_numerals=args.suppress_numerals,
         device=args.device,
     )
-else:
+    logger.info("Transcription Complete")
+
+elif model_name.startswith("canary-"):
+    # Import Canary Model
+    logger.info("Loading Canary Model")
+    from transcription_models.canary_model_v4 import transcribe_batched as canary_transcribe_batched, CANARY_MODELS
+    model = load_canary_model(CANARY_MODELS[model_name], args.device)
+
+    # Transcribe the audio file
+    logger.info("Transcribing Audio File")
     transcribe_results, language, audio_waveform = canary_transcribe_batched(
         model=model,
         audio_file=vocal_target,
@@ -149,108 +155,182 @@ else:
         suppress_numerals=args.suppress_numerals,
         device=args.device,
     )
+    logger.info("Transcription Complete")
 
-# Handle language detection failure
-if language is None:
-    language = "en"  # Set a default language if detection fails
-    print("WARNING: Language detection failed, defaulting to English (en)")
+else:
+    raise ValueError(f"Unsupported transcription model: {args.transcription_model}")
 
 # Forced Alignment
+logger.info("Loading Forced Alignment Model")
 alignment_model, alignment_tokenizer, alignment_dictionary = load_alignment_model(
     args.device,
     dtype=torch.float16 if args.device == "cuda" else torch.float32,
 )
 
 # Ensure audio waveform is a torch tensor
+logger.info("Converting Audio Waveform to Tensor")
 audio_waveform = torch.tensor(audio_waveform)
-print(f"DEBUG: Audio Waveform Tensor Shape: {audio_waveform.shape}")
+logger.debug(f"Audio Waveform Tensor Shape: {audio_waveform.shape}")
 
 # Split audio waveform for forced alignment
+logger.info("Splitting Audio Waveform for Forced Alignment")
 max_len = 5000  # Adjust segment length to avoid tensor size issues
+logger.debug(f"Segment Length: {max_len}")
 audio_waveform_segments = torch.split(audio_waveform, max_len, dim=1)
-print(f"DEBUG: Number of Segments: {len(audio_waveform_segments)}")
+logger.debug(f"Number of Segments: {len(audio_waveform_segments)}")
 
+# Setup variables for alignment
 emissions = []
 stride = None
 
+# Perform forced alignment on each segment
+logger.info("Performing Forced Alignment on Audio Segments")
 for idx, segment in enumerate(audio_waveform_segments):
-    print(f"DEBUG: Processing Segment {idx + 1}/{len(audio_waveform_segments)} with Shape: {segment.shape}")
+    logger.debug(f"Processing Segment {idx + 1}/{len(audio_waveform_segments)} with Shape: {segment.shape}")
     try:
         segment_emissions, segment_stride = generate_emissions(
             alignment_model, segment, batch_size=args.batch_size
         )
-        print(f"DEBUG: Segment Emissions Shape: {segment_emissions.shape}, Stride: {segment_stride}")
+        logger.debug(f"Segment Emissions Shape: {segment_emissions.shape}, Stride: {segment_stride}")
         emissions.append(segment_emissions)
+        logger.debug(f"Combined Emissions Shape: {torch.cat(emissions, dim=1).shape}")
         stride = segment_stride
+        logger.debug(f"Combined Stride: {stride}")
+        logger.info(f"Segment {idx + 1}/{len(audio_waveform_segments)} Alignment Complete")
     except RuntimeError as e:
-        print(f"ERROR: Processing Segment {idx + 1}/{len(audio_waveform_segments)} failed with error: {e}")
+        logger.error(f"Processing Segment {idx + 1}/{len(audio_waveform_segments)} failed with error: {e}")
         break
 
 # Verify emissions before concatenation
+logger.info("Verifying Emissions before Concatenation")
 if emissions:
     try:
         emissions = torch.cat(emissions, dim=1)
-        print(f"DEBUG: Combined Emissions Shape: {emissions.shape}")
+        logger.debug(f"Combined Emissions Shape: {emissions.shape}")
+        logger.info("Concatenating Emissions Complete")
     except Exception as e:
-        print(f"ERROR: Concatenating Emissions failed with error: {e}")
+        logger.error(f"Concatenating Emissions failed with error: {e}")
 
 if not isinstance(emissions, torch.Tensor):
-    print("ERROR: Emissions is not a tensor. Exiting.")
+    logger.error("ERROR: Emissions is not a tensor. Exiting.")
     exit(1)
 
+# Cleanup alignment model
+logger.info("Cleaning up Alignment Model")
 del alignment_model
+logger.info("Freeing up GPU Memory")
 torch.cuda.empty_cache()
 
+# Preprocess text for alignment
+logger.info("Preprocessing Text for Alignment")
 full_transcript = "".join(segment["text"] for segment in transcribe_results)
 
+# Perform forced alignment
+logger.info("Performing Forced Alignment")
 tokens_starred, text_starred = preprocess_text(
     full_transcript,
     romanize=True,
     language=langs_to_iso[language],
 )
 
+# Get alignments
+logger.info("Getting Alignments")
 segments, blank_id = get_alignments(
     emissions,
     tokens_starred,
     alignment_dictionary,
 )
 
+# Get spans
+logger.info("Getting Spans")
 spans = get_spans(tokens_starred, segments, alignment_tokenizer.decode(blank_id))
 
+# Postprocess results
+logger.info("Postprocessing Results")
 word_timestamps = postprocess_results(text_starred, spans, stride)
 
 # Convert audio to mono for NeMo compatibility
+logger.info("Preprocessing Audio to Mono for NeMo Diarization & Compatibility")
 ROOT = os.getcwd()
 temp_path = os.path.join(ROOT, "temp_outputs")
+logger.debug(f"Temporary Path: {temp_path}")
 os.makedirs(temp_path, exist_ok=True)
+logger.debug(f"Temporary Directory Created: {temp_path}")
+logger.info(f"Normalizing Audio as:
+                \t - Channels:    1
+                \t - Depth:       16-bit
+                \t - Modulation:  PCM
+                \t - Sample Rate: 16 kHz
+                \t - File Format: WAV")
 torchaudio.save(
     os.path.join(temp_path, "mono_file.wav"),
     audio_waveform.unsqueeze(0).float(),
     16000,
     channels_first=True,
 )
+logger.info(f"Normalized file saved to: {os.path.join(temp_path, 'mono_file.wav')}")
 
 # Initialize NeMo MSDD diarization model
+logger.info("Initializing NeMo MSDD Diarization Model")
 msdd_model = NeuralDiarizer(cfg=create_config(temp_path)).to(args.device)
+
+# Perform Speaker Diarization
+logger.info("Performing Speaker Diarization")
 msdd_model.diarize()
 
+# Cleanup MSDD Model
+logger.info("Cleaning up MSDD Model")
 del msdd_model
+
+# Free up GPU Memory
+logger.info("Freeing up GPU Memory")
 torch.cuda.empty_cache()
 
 # Reading timestamps <> Speaker Labels mapping
+# Setup speaker timestamps
+logger.info("Setting up Speaker Timestamps")
 speaker_ts = []
+
+logger.info("Reading Speaker Timestamps")
 with open(os.path.join(temp_path, "pred_rttms", "mono_file.rttm"), "r") as f:
+
+    # Read lines from the RTTM file
+    logger.info("Reading RTTM File")
     lines = f.readlines()
+
+    # Create line_number variable for tracking
+    line_number = 0
+
+    # Get start time, end time, and speaker label for each line
     for line in lines:
+        # Add 1 to line_number
+        line_number += 1
+
+        # Log processing line number
+        logger.info(f"Processing Line {line_number}/{len(lines)}")
+        
+        # Split the line by space
         line_list = line.split(" ")
+
+        # Extract start and end times
         s = int(float(line_list[5]) * 1000)
+
+        # Calculate end time
         e = s + int(float(line_list[8]) * 1000)
+
+        # Extract speaker label
         speaker_ts.append([s, e, int(line_list[11].split("_")[-1])])
 
+        # Log speaker, start, and end times for line_number
+        logger.info(f"Speaker: {int(line_list[11].split('_')[-1])}, Start: {s}, End: {e}")
+
+# Get words-speaker mapping
+logger.info("Getting Words-Speaker Mapping")
 wsm = get_words_speaker_mapping(word_timestamps, speaker_ts, "start")
 
 if language in punct_model_langs:
     # restoring punctuation in the transcript to help realign the sentences
+    logger.info("Restoring Punctuation")
     punct_model = PunctuationModel(model="kredor/punctuate-all")
 
     words_list = list(map(lambda x: x["word"], wsm))
@@ -276,17 +356,31 @@ if language in punct_model_langs:
             word_dict["word"] = word
 
 else:
-    logging.warning(
+    logger.warning(
         f"Punctuation restoration is not available for {language} language. Using the original punctuation."
     )
 
+# Get realigned words-speaker mapping with punctuation
+logger.info("Getting Realigned Words-Speaker Mapping with Punctuation")
 wsm = get_realigned_ws_mapping_with_punctuation(wsm)
+
+# Get sentences-speaker mapping
+logger.info("Getting Sentences-Speaker Mapping")
 ssm = get_sentences_speaker_mapping(wsm, speaker_ts)
 
+# Write speaker-aware transcript to text file
+logger.info("Writing Speaker-Aware Transcript to Text File")
 with open(f"{os.path.splitext(args.audio)[0]}.txt", "w", encoding="utf-8-sig") as f:
     get_speaker_aware_transcript(ssm, f)
 
+# Write speaker-aware transcript to SRT file
+logger.info("Writing Speaker-Aware Transcript to SRT File")
 with open(f"{os.path.splitext(args.audio)[0]}.srt", "w", encoding="utf-8-sig") as srt:
     write_srt(ssm, srt)
 
+# Cleanup temporary files
+logger.info("Cleaning up Temporary Files")
 cleanup(temp_path)
+
+# Log completion
+logger.info("Processing Complete")
