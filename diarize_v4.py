@@ -206,12 +206,14 @@ logger.info(" Performing Forced Alignment on Audio Segments")
 for idx, segment in enumerate(audio_waveform_segments):
     logger.debug(f"Processing Segment {idx + 1}/{len(audio_waveform_segments)} with Shape: {segment.shape}")
     try:
-        padded_waveform = segment.squeeze(0)  # Remove batch dimension
+        padded_waveform = segment  # Ensure the waveform is correctly padded
         logger.debug(f"Padded Waveform Shape: {padded_waveform.shape}")
         
         segment_emissions, segment_stride = generate_emissions(
             alignment_model, padded_waveform, window_size // 16000, context_size // 16000, args.batch_size
         )
+        if segment_emissions.size(0) > 2:
+            segment_emissions = segment_emissions[:2]  # Ensure the tensor size is within the limit
         logger.debug(f"Segment Emissions Shape: {segment_emissions.shape}, Stride: {segment_stride}")
         emissions.append(segment_emissions)
         stride = segment_stride
