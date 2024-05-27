@@ -191,6 +191,11 @@ elif model_name.startswith("canary-"):
 else:
     raise ValueError(f"Unsupported transcription model: {args.transcription_model}")
 
+# Check if transcription results are empty
+if not transcribe_results:
+    logger.error("Transcription results are empty. Exiting.")
+    exit(1)
+
 # Forced Alignment
 logger.info(" Loading Forced Alignment Model")
 alignment_model, alignment_tokenizer, alignment_dictionary = load_alignment_model(
