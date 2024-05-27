@@ -1,3 +1,8 @@
+import warnings
+
+# Suppress the specific UserWarning
+warnings.filterwarnings("ignore", message="torchaudio._backend.set_audio_backend has been deprecated")
+
 import argparse
 import os
 from helpers import (
@@ -56,6 +61,13 @@ parser.add_argument(
     "This helps the diarization accuracy but converts all digits into written text.",
 )
 
+parser.add_argument(
+    "--batch-size",
+    type=int,
+    dest="batch_size",
+    default=8,
+    help="Batch size for batched inference, reduce if you run out of memory, set to 0 for non-batched inference",
+)
 
 parser.add_argument(
     "--language",
@@ -88,14 +100,12 @@ if model_name.startswith("whisper-"):
     from transcription_models.whisper_model import transcribe_batched, WHISPER_MODELS
     model_name = WHISPER_MODELS[model_name]
     print("#" * 79)
-    print(f"DEBUG: Model Name:  {model_name}")
-    print("#" * 79)
+    print(f"DEBUG: Model Name:                  {model_name}")
 elif model_name.startswith("canary-"):
     from transcription_models.canary_model_v3 import transcribe_batched, CANARY_MODELS
     model_name = CANARY_MODELS[model_name]
     print("#" * 79)
-    print(f"DEBUG: Model Name:  {model_name}")
-    print("#" * 79)
+    print(f"DEBUG: Model Name:                  {model_name}")
 else:
     raise ValueError(f"Unsupported transcription model: {args.transcription_model}")
 
@@ -124,13 +134,13 @@ else:
 
 # Transcribe the audio file
 transcribe_results, language, audio_waveform = transcribe_batched(
-    vocal_target,
-    args.language,
-    args.batch_size,
-    model_name,
-    mtypes[args.device],
-    args.suppress_numerals,
-    args.device,
+    audio_file=vocal_target,
+    language=args.language,
+    batch_size=args.batch_size,
+    model_name=model_name,
+    compute_dtype=mtypes[args.device],
+    suppress_numerals=args.suppress_numerals,
+    device=args.device,
 )
 
 # Forced Alignment
@@ -139,14 +149,24 @@ alignment_model, alignment_tokenizer, alignment_dictionary = load_alignment_mode
     dtype=torch.float16 if args.device == "cuda" else torch.float32,
 )
 
-audio_waveform = (
-    torch.from_numpy(audio_waveform)
-    .to(alignment_model.dtype)
-    .to(alignment_model.device)
-)
-emissions, stride = generate_emissions(
-    alignment_model, audio_waveform, batch_size=args.batch_size
-)
+# Ensure audio waveform is a torch tensor
+audio_waveform = torch.tensor(audio_waveform)
+
+# Split audio waveform for forced alignment
+max_len = 50000  # Reduce the segment length to avoid tensor size issues
+audio_waveform_segments = torch.split(audio_waveform, max_len, dim=1)
+
+emissions = []
+stride = None
+
+for segment in audio_waveform_segments:
+    segment_emissions, segment_stride = generate_emissions(
+        alignment_model, segment, batch_size=args.batch_size
+    )
+    emissions.append(segment_emissions)
+    stride = segment_stride
+
+emissions = torch.cat(emissions, dim=1)
 
 del alignment_model
 torch.cuda.empty_cache()
@@ -169,18 +189,16 @@ spans = get_spans(tokens_starred, segments, alignment_tokenizer.decode(blank_id)
 
 word_timestamps = postprocess_results(text_starred, spans, stride)
 
-
-# convert audio to mono for NeMo combatibility
+# Convert audio to mono for NeMo compatibility
 ROOT = os.getcwd()
 temp_path = os.path.join(ROOT, "temp_outputs")
 os.makedirs(temp_path, exist_ok=True)
 torchaudio.save(
     os.path.join(temp_path, "mono_file.wav"),
-    audio_waveform.cpu().unsqueeze(0).float(),
+    audio_waveform.unsqueeze(0).float(),
     16000,
     channels_first=True,
 )
-
 
 # Initialize NeMo MSDD diarization model
 msdd_model = NeuralDiarizer(cfg=create_config(temp_path)).to(args.device)
@@ -190,8 +208,6 @@ del msdd_model
 torch.cuda.empty_cache()
 
 # Reading timestamps <> Speaker Labels mapping
-
-
 speaker_ts = []
 with open(os.path.join(temp_path, "pred_rttms", "mono_file.rttm"), "r") as f:
     lines = f.readlines()
