@@ -1,6 +1,8 @@
-import torch
 from faster_whisper import WhisperModel
 from helpers import find_numeral_symbol_tokens, wav2vec2_langs
+
+import torch
+import whisperx
 
 # List of available Whisper models
 WHISPER_MODELS = {
@@ -17,6 +19,8 @@ WHISPER_MODELS = {
     "whisper-large-v3": "openai/whisper-large-v3",
 }
 
+
+
 def transcribe(
     audio_file: str,
     language: str,
@@ -26,7 +30,6 @@ def transcribe(
     device: str,
 ):
     # Faster Whisper non-batched
-    print(model_name)
     whisper_model = WhisperModel(model_name, device=device, compute_type=compute_dtype)
 
     if suppress_numerals:
@@ -61,20 +64,41 @@ def transcribe_batched(
     suppress_numerals: bool,
     device: str,
 ):
-    import whisperx
 
-    # Remove "whisper-" prefix if present
-    if model_name.startswith("whisper-"):
-        model_name = model_name[len("whisper-"):]
-    # Faster Whisper batched
+    logger.info(f"Loading Whisper Model: {model_name}")
+    
+    # Remove "whisper-" prefix from model_name if present
+    if model_name.startswith("openai/whisper-"):
+        model_name = model_name[len("openai/whisper-"):]
+
+    # Load the Whisper model using whisperx library
     whisper_model = whisperx.load_model(
         model_name,
         device,
         compute_type=compute_dtype,
         asr_options={"suppress_numerals": suppress_numerals},
     )
+
+    # Load the audio waveform
+    logger.info(f"Loading Audio File: {audio_file}")
     audio = whisperx.load_audio(audio_file)
+
+    # Transcribe the audio
+    logger.info(f"Transcribing Audio: {audio_file}")
     result = whisper_model.transcribe(audio, language=language, batch_size=batch_size)
+
+    # Delete the model and free up memory
+    logger.info("Deleting Whisper Model")
     del whisper_model
+
+    # Clear the GPU memory
+    logger.info("Clearing GPU Memory")
     torch.cuda.empty_cache()
+
+    # Print debug information
+    logger.debug(f"Transcription Results: {result['segments']}")
+    logger.debug(f"Language: {result['language']}")
+    logger.debug(f"Audio: {audio}")
+
+    # Return the transcribed segments, language, and audio
     return result["segments"], result["language"], audio
