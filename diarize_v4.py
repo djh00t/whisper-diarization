@@ -253,7 +253,7 @@ logger.info(" Performing Forced Alignment")
 tokens_starred, text_starred = preprocess_text(
     full_transcript,
     romanize=True,
-    language=langs_to_iso[language],
+    language=langs_to_iso.get(language, "en"),  # Default to English if language is None
 )
 
 # Get alignments
