@@ -268,12 +268,14 @@ temp_path = os.path.join(ROOT, "temp_outputs")
 logger.debug(f"Temporary Path: {temp_path}")
 os.makedirs(temp_path, exist_ok=True)
 logger.debug(f"Temporary Directory Created: {temp_path}")
-logger.info(f"Normalizing Audio as:
-                \t - Channels:    1
-                \t - Depth:       16-bit
-                \t - Modulation:  PCM
-                \t - Sample Rate: 16 kHz
-                \t - File Format: WAV")
+logger.info(
+    "Normalizing Audio as:\n"
+    "\t - Channels:    1\n"
+    "\t - Depth:       16-bit\n"
+    "\t - Modulation:  PCM\n"
+    "\t - Sample Rate: 16 kHz\n"
+    "\t - File Format: WAV"
+)
 torchaudio.save(
     os.path.join(temp_path, "mono_file.wav"),
     audio_waveform.unsqueeze(0).float(),
