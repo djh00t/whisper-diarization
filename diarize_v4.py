@@ -105,7 +105,7 @@ if language is None:
 if args.stemming:
     # Isolate vocals from the rest of the audio
     return_code = os.system(
-        f'python -m demucs.separate -n htdemucs --two-stems=vocals "{args.audio}" -o "temp_outputs"'
+        f'python -m demucs.separate -n htdemucs --two-stems=vocals "{args.audio}" -o "temp_outputs"',
         logger,
     )
 
