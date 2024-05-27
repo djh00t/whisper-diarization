@@ -63,9 +63,10 @@ def transcribe_batched(
     compute_dtype: str,
     suppress_numerals: bool,
     device: str,
+    logger,
 ):
 
-    logger.info(f"Loading Whisper Model: {model_name}")
+    logger.info(f" Loading Whisper Model: {model_name}")
     
     # Remove "whisper-" prefix from model_name if present
     if model_name.startswith("openai/whisper-"):
@@ -79,20 +80,23 @@ def transcribe_batched(
         asr_options={"suppress_numerals": suppress_numerals},
     )
 
-    # Load the audio waveform
-    logger.info(f"Loading Audio File: {audio_file}")
+    # Load the audio waveform and ensure it is mono
+    logger.info(f" Loading Audio File: {audio_file}")
     audio = whisperx.load_audio(audio_file)
+    if audio.shape[0] > 1:
+        logger.info(" Converting Audio to Mono")
+        audio = audio.mean(dim=0, keepdim=True)
 
     # Transcribe the audio
-    logger.info(f"Transcribing Audio: {audio_file}")
+    logger.info(f" Transcribing Audio: {audio_file}")
     result = whisper_model.transcribe(audio, language=language, batch_size=batch_size)
 
     # Delete the model and free up memory
-    logger.info("Deleting Whisper Model")
+    logger.info(" Deleting Whisper Model")
     del whisper_model
 
     # Clear the GPU memory
-    logger.info("Clearing GPU Memory")
+    logger.info(" Clearing GPU Memory")
     torch.cuda.empty_cache()
 
     # Print debug information
