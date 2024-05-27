@@ -22,6 +22,11 @@ from helpers import (
     write_srt,
     cleanup,
 )
+parser.add_argument(
+    "--debug",
+    action="store_true",
+    help="Enable debug logging"
+)
 from nemo.collections.asr.models.msdd_models import NeuralDiarizer
 from deepmultilingualpunctuation import PunctuationModel
 import re
@@ -49,6 +54,12 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+if args.debug:
+    logger.setLevel(logging.DEBUG)
+    for handler in logger.handlers:
+        handler.setLevel(logging.DEBUG)
+    logger.debug("Debug logging enabled")
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
