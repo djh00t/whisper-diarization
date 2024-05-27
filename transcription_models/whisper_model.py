@@ -83,9 +83,9 @@ def transcribe_batched(
     # Load the audio waveform and ensure it is mono
     logger.info(f" Loading Audio File: {audio_file}")
     audio = whisperx.load_audio(audio_file)
-    if audio.shape[0] > 1:
+    if len(audio.shape) > 1 and audio.shape[0] > 1:
         logger.info(" Converting Audio to Mono")
-        audio = audio.mean(dim=0, keepdim=True)
+        audio = torch.mean(audio, dim=0, keepdim=True)
 
     # Transcribe the audio
     logger.info(f" Transcribing Audio: {audio_file}")
