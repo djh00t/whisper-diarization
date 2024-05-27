@@ -22,6 +22,9 @@ def load_canary_model(model_name, device):
 
 def save_audio_to_tempfile(audio_data, sr, tmpfs_dir='/dev/shm'):
     temp_file_path = os.path.join(tmpfs_dir, next(tempfile._get_candidate_names()) + ".wav")
+    # Ensure audio is mono
+    if audio_data.shape[0] > 1:
+        audio_data = torch.mean(audio_data, dim=0, keepdim=True)
     torchaudio.save(temp_file_path, audio_data, sr)
     print(f"DEBUG: Saved Audio to Temp File: {temp_file_path}")
     return temp_file_path
