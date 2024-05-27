@@ -9,6 +9,9 @@ def setup_logger(debug=False):
             logging.StreamHandler(sys.stdout)
         ]
     )
+    # Set the logging level for 'urllib3.connectionpool' to WARNING
+    logging.getLogger("urllib3.connectionpool").setLevel(logging.WARNING)
+
     logger = logging.getLogger(__name__)
     if debug:
         logger.debug("Debug logging enabled")
