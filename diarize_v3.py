@@ -1,4 +1,6 @@
 import warnings
+import logging
+import sys
 
 # Suppress the specific UserWarning
 warnings.filterwarnings("ignore", message="torchaudio._backend.set_audio_backend has been deprecated")
@@ -39,7 +41,17 @@ mtypes = {
     "cpu": "float32"
 }
 
-# Initialize parser
+# Configure logger
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(name)s %(levelname)s: %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "-a", "--audio", help="name of the target audio file", required=True
@@ -90,7 +102,7 @@ args = parser.parse_args()
 # Handle language detection failure
 if language is None:
     language = "en"  # Set a default language if detection fails
-    print("WARNING: Language detection failed, defaulting to English (en)")
+    logger.warning("Language detection failed, defaulting to English (en)")
 
 if args.stemming:
     # Isolate vocals from the rest of the audio
