@@ -7,7 +7,7 @@ import argparse
 import os
 import torch
 import torchaudio
-from transcription_models.canary_model_v4 import load_canary_model, transcribe_batched
+from transcription_models.canary_model_v4 import load_canary_model, transcribe_batched as canary_transcribe_batched
 from helpers import (
     whisper_langs,
     langs_to_iso,
