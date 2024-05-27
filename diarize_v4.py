@@ -3,6 +3,11 @@ from utils import setup_logger
 
 warnings.filterwarnings("ignore", message="torchaudio._backend.set_audio_backend has been deprecated")
 
+# Set current_datetime on launch
+from datetime import datetime
+current_datetime = datetime.now().strftime("%Y%m%d%H%M%S%f")[:-3]
+
+
 import argparse
 import os
 import torch
@@ -105,9 +110,7 @@ if language is None:
 if args.stemming:
     # Isolate vocals from the rest of the audio
     return_code = os.system(
-        f'python -m demucs.separate -n htdemucs --two-stems=vocals "{args.audio}" -o "temp_outputs"',
-        logger,
-        logger,
+        f'python -m demucs.separate -n htdemucs --two-stems=vocals "{args.audio}" -o "temp_outputs"'
     )
 
     if return_code != 0:
@@ -147,6 +150,7 @@ if model_name.startswith("whisper-"):
         compute_dtype=mtypes[args.device],
         suppress_numerals=args.suppress_numerals,
         device=args.device,
+        logger=logger,
     )
     logger.info(" Transcription Complete")
 
@@ -403,23 +407,27 @@ ssm = get_sentences_speaker_mapping(wsm, speaker_ts)
 
 # Write pre-diarization transcript to text file
 logger.info(" Writing Pre-Diarization Transcript to Text File")
-with open(f"{os.path.splitext(args.audio)[0]}_pre_diarization.txt", "w", encoding="utf-8-sig") as f:
+pre_diarization_filename = f"{current_datetime}_{os.path.splitext(args.audio)[0]}_pre_diarization.txt"
+with open(pre_diarization_filename, "w", encoding="utf-8-sig") as f:
     get_speaker_aware_transcript(ssm, f, pre_diarization=True)
 
 # Write post-diarization speaker-aware transcript to text file
 logger.info(" Writing Post-Diarization Speaker-Aware Transcript to Text File")
-with open(f"{os.path.splitext(args.audio)[0]}_post_diarization.txt", "w", encoding="utf-8-sig") as f:
+post_diarization_filename = f"{current_datetime}_{os.path.splitext(args.audio)[0]}_post_diarization.txt"
+with open(post_diarization_filename, "w", encoding="utf-8-sig") as f:
     get_speaker_aware_transcript(ssm, f, pre_diarization=False)
 
 # Write SRT with speaker attribution
 logger.info(" Writing Speaker-Aware Transcript to SRT File")
-with open(f"{os.path.splitext(args.audio)[0]}_speaker.srt", "w", encoding="utf-8-sig") as srt:
+srt_with_speaker_filename = f"{current_datetime}_{os.path.splitext(args.audio)[0]}_with_speaker.srt"
+with open(srt_with_speaker_filename, "w", encoding="utf-8-sig") as srt:
     write_srt(ssm, srt, include_speaker=True)
 
 # Write SRT without speaker attribution
 logger.info(" Writing Transcript to SRT File without Speaker Attribution")
-with open(f"{os.path.splitext(args.audio)[0]}_no_speaker.srt", "w", encoding="utf-8-sig") as srt_no_speaker:
-    write_srt(ssm, srt_no_speaker, include_speaker=False)
+srt_without_speaker_filename = f"{current_datetime}_{os.path.splitext(args.audio)[0]}_without_speaker.srt"
+with open(srt_without_speaker_filename, "w", encoding="utf-8-sig") as srt:
+    write_srt(ssm, srt, include_speaker=False)
 
 # Cleanup temporary files
 logger.info(" Cleaning up Temporary Files")
