@@ -223,16 +223,22 @@ def create_config(output_dir):
     CONFIG_LOCAL_DIRECTORY = "nemo_msdd_configs"
     CONFIG_FILE_NAME = f"diar_infer_{DOMAIN_TYPE}.yaml"
     MODEL_CONFIG_PATH = os.path.join(CONFIG_LOCAL_DIRECTORY, CONFIG_FILE_NAME)
+    logger.info(f" NeMo Configuration File Name: {MODEL_CONFIG_PATH}")
     if not os.path.exists(MODEL_CONFIG_PATH):
         os.makedirs(CONFIG_LOCAL_DIRECTORY, exist_ok=True)
         CONFIG_URL = f"https://raw.githubusercontent.com/NVIDIA/NeMo/main/examples/speaker_tasks/diarization/conf/inference/{CONFIG_FILE_NAME}"
         MODEL_CONFIG_PATH = wget.download(CONFIG_URL, MODEL_CONFIG_PATH)
 
+    # Load Configuration
+    logger.info(" Loading NeMo Configuration")
     config = OmegaConf.load(MODEL_CONFIG_PATH)
 
+    # Set Data Directory
     data_dir = os.path.join(output_dir, "data")
     os.makedirs(data_dir, exist_ok=True)
+    logger.info(f" Data Directory: {data_dir}")
 
+    # Set Manifest File
     meta = {
         "audio_filepath": os.path.join(output_dir, "mono_file.wav"),
         "offset": 0,
@@ -242,23 +248,51 @@ def create_config(output_dir):
         "rttm_filepath": None,
         "uem_filepath": None,
     }
+
+    # Write Manifest File
+    logger.info(" Writing Input Manifest File")
     with open(os.path.join(data_dir, "input_manifest.json"), "w") as fp:
         json.dump(meta, fp)
         fp.write("\n")
 
+    # Set Configuration Parameters
+    logger.info(" Setting Configuration Parameters")
+    
+    # Set VAD Model
     pretrained_vad = "vad_multilingual_marblenet"
+    logger.info(f" Pretrained VAD Model: {pretrained_vad}")
+
+    # Set Speaker Model
     pretrained_speaker_model = "titanet_large"
+    logger.info(f" Pretrained Speaker Model: {pretrained_speaker_model}")
+
+    # Set Number of Workers
     config.num_workers = 0
+    logger.info(f" Number of Workers: {config.num_workers}")
+
+    # Set Diarizer Configuration
     config.diarizer.manifest_filepath = os.path.join(data_dir, "input_manifest.json")
+    logger.info(f" Manifest File Path: {config.diarizer.manifest_filepath}")
+
+    # Set Output Directory
     config.diarizer.out_dir = (
         output_dir  # Directory to store intermediate files and prediction outputs
     )
+    logger.info(f" Output Directory: {config.diarizer.out_dir}")
 
+    # Set Speaker Model Path
     config.diarizer.speaker_embeddings.model_path = pretrained_speaker_model
+    logger.info(f" Speaker Model Path: {config.diarizer.speaker_embeddings.model_path}")
+
+    # Set VAD Configuration
     config.diarizer.oracle_vad = (
         False  # compute VAD provided with model_path to vad config
     )
+    logger.info(f" Oracle VAD: {config.diarizer.oracle_vad}")
+
+    # Set Clustering Parameters
     config.diarizer.clustering.parameters.oracle_num_speakers = False
+    logger.info(f" Oracle Number of Speakers: {config.diarizer.clustering.parameters.oracle_num_speakers}")
 
     # Here, we use our in-house pretrained NeMo VAD model
     config.diarizer.vad.model_path = pretrained_vad
@@ -268,6 +302,11 @@ def create_config(output_dir):
     config.diarizer.msdd_model.model_path = (
         "diar_msdd_telephonic"  # Telephonic speaker diarization model
     )
+    logger.info(f" VAD Model Path: {config.diarizer.vad.model_path}")
+    logger.info(f" Onset: {config.diarizer.vad.parameters.onset}")
+    logger.info(f" Offset: {config.diarizer.vad.parameters.offset}")
+    logger.info(f" Pad Offset: {config.diarizer.vad.parameters.pad_offset}")
+    logger.info(f" MSDD Model Path: {config.diarizer.msdd_model.model_path}")
 
     return config
 
@@ -429,26 +468,8 @@ def get_sentences_speaker_mapping(word_speaker_mapping, spk_ts):
     return snts
 
 
-def get_speaker_aware_transcript(sentences_speaker_mapping, f):
-    previous_speaker = sentences_speaker_mapping[0]["speaker"]
-    f.write(f"{previous_speaker}: ")
-
-    for sentence_dict in sentences_speaker_mapping:
-        speaker = sentence_dict["speaker"]
-        sentence = sentence_dict["text"]
-
-        # If this speaker doesn't match the previous one, start a new paragraph
-        if speaker != previous_speaker:
-            f.write(f"\n\n{speaker}: ")
-            previous_speaker = speaker
-
-        # No matter what, write the current sentence
-        f.write(sentence + " ")
-
-
-def format_timestamp(
-    milliseconds: float, always_include_hours: bool = False, decimal_marker: str = "."
-):
+def format_timestamp(milliseconds: float) -> str:
+    """Format the timestamp in HH:MM:SS,mmm format."""
     assert milliseconds >= 0, "non-negative timestamp expected"
 
     hours = milliseconds // 3_600_000
@@ -460,27 +481,44 @@ def format_timestamp(
     seconds = milliseconds // 1_000
     milliseconds -= seconds * 1_000
 
-    hours_marker = f"{hours:02d}:" if always_include_hours or hours > 0 else ""
-    return (
-        f"{hours_marker}{minutes:02d}:{seconds:02d}{decimal_marker}{milliseconds:03d}"
-    )
+    return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02},{int(milliseconds):03}"
 
 
-def write_srt(transcript, file):
+def get_speaker_aware_transcript(sentences_speaker_mapping, f, pre_diarization=False):
+    for sentence_dict in sentences_speaker_mapping:
+        speaker = sentence_dict["speaker"]
+        sentence = sentence_dict["text"].strip()
+        start_time = format_timestamp(sentence_dict["start_time"])
+        end_time = format_timestamp(sentence_dict["end_time"])
+
+        if pre_diarization:
+            # Write the sentence with start and end times (pre-diarization)
+            f.write(f"[{start_time} - {end_time}]  {sentence}\n")
+        else:
+            # Write the sentence with speaker labels, start, and end times (post-diarization)
+            f.write(f"[{speaker}] [{start_time} - {end_time}]  {sentence}\n")
+
+
+def write_srt(transcript, file, include_speaker=True):
     """
     Write a transcript to a file in SRT format.
-
     """
     for i, segment in enumerate(transcript, start=1):
-        # write srt lines
+        start_time = format_timestamp(segment['start_time'])
+        end_time = format_timestamp(segment['end_time'])
+        text = segment['text'].strip().replace('-->', '->')
+        if include_speaker:
+            text = f"{segment['speaker']}: {text}"
+
         print(
             f"{i}\n"
-            f"{format_timestamp(segment['start_time'], always_include_hours=True, decimal_marker=',')} --> "
-            f"{format_timestamp(segment['end_time'], always_include_hours=True, decimal_marker=',')}\n"
-            f"{segment['speaker']}: {segment['text'].strip().replace('-->', '->')}\n",
+            f"{start_time} --> {end_time}\n"
+            f"{text}\n",
             file=file,
             flush=True,
         )
+
+
 
 
 def find_numeral_symbol_tokens(tokenizer):
