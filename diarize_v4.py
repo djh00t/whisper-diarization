@@ -446,5 +446,19 @@ with open(srt_without_speaker_filename, "w", encoding="utf-8-sig") as srt:
 logger.info(" Cleaning up Temporary Files")
 cleanup(temp_path)
 
+if args.stemming:
+    logger.info(" Converting vocal_target to mono PCM 16-bit WAV with 16kHz sample rate")
+    vocal_target_waveform, sample_rate = torchaudio.load(vocal_target)
+    vocal_target_waveform = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=16000)(vocal_target_waveform)
+    vocal_target_waveform = torch.mean(vocal_target_waveform, dim=0, keepdim=True)  # Convert to mono
+    torchaudio.save(
+        vocal_target,
+        vocal_target_waveform,
+        16000,
+        encoding="PCM_S",
+        bits_per_sample=16
+    )
+    logger.info(f" Converted vocal_target saved to: {vocal_target}")
+
 # Log completion
 logger.info(" Processing Complete")
