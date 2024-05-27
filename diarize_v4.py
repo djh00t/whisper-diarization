@@ -22,6 +22,32 @@ from helpers import (
     write_srt,
     cleanup,
 )
+import warnings
+import logging
+import sys
+
+# Suppress the specific UserWarning
+warnings.filterwarnings("ignore", message="torchaudio._backend.set_audio_backend has been deprecated")
+
+import argparse
+import os
+import torch
+import torchaudio
+from transcription_models.canary_model_v4 import load_canary_model, transcribe_batched as canary_transcribe_batched
+from helpers import (
+    whisper_langs,
+    langs_to_iso,
+    punct_model_langs,
+    create_config,
+    get_words_speaker_mapping,
+    get_realigned_ws_mapping_with_punctuation,
+    get_sentences_speaker_mapping,
+    get_speaker_aware_transcript,
+    write_srt,
+    cleanup,
+)
+
+parser = argparse.ArgumentParser()
 parser.add_argument(
     "--debug",
     action="store_true",
@@ -56,17 +82,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-if args.debug:
-    logger.setLevel(logging.DEBUG)
-    for handler in logger.handlers:
-        handler.setLevel(logging.DEBUG)
-    logger.debug("Debug logging enabled")
-
-if args.debug:
-    logger.setLevel(logging.DEBUG)
-    for handler in logger.handlers:
-        handler.setLevel(logging.DEBUG)
-    logger.debug("Debug logging enabled")
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -114,6 +129,12 @@ parser.add_argument(
 )
 
 args = parser.parse_args()
+
+if args.debug:
+    logger.setLevel(logging.DEBUG)
+    for handler in logger.handlers:
+        handler.setLevel(logging.DEBUG)
+    logger.debug("Debug logging enabled")
 
 # Initialize language variable
 language = args.language
