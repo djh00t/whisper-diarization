@@ -407,25 +407,37 @@ ssm = get_sentences_speaker_mapping(wsm, speaker_ts)
 
 # Write pre-diarization transcript to text file
 logger.info(" Writing Pre-Diarization Transcript to Text File")
-pre_diarization_filename = f"{current_datetime}_{os.path.splitext(args.audio)[0]}_pre_diarization.txt"
+pre_diarization_filename = os.path.join(
+    os.path.dirname(args.audio),
+    f"{current_datetime}_{os.path.basename(os.path.splitext(args.audio)[0])}_pre_diarization.txt"
+)
 with open(pre_diarization_filename, "w", encoding="utf-8-sig") as f:
     get_speaker_aware_transcript(ssm, f, pre_diarization=True)
 
 # Write post-diarization speaker-aware transcript to text file
 logger.info(" Writing Post-Diarization Speaker-Aware Transcript to Text File")
-post_diarization_filename = f"{current_datetime}_{os.path.splitext(args.audio)[0]}_post_diarization.txt"
+post_diarization_filename = os.path.join(
+    os.path.dirname(args.audio),
+    f"{current_datetime}_{os.path.basename(os.path.splitext(args.audio)[0])}_post_diarization.txt"
+)
 with open(post_diarization_filename, "w", encoding="utf-8-sig") as f:
     get_speaker_aware_transcript(ssm, f, pre_diarization=False)
 
 # Write SRT with speaker attribution
 logger.info(" Writing Speaker-Aware Transcript to SRT File")
-srt_with_speaker_filename = f"{current_datetime}_{os.path.splitext(args.audio)[0]}_with_speaker.srt"
+srt_with_speaker_filename = os.path.join(
+    os.path.dirname(args.audio),
+    f"{current_datetime}_{os.path.basename(os.path.splitext(args.audio)[0])}_with_speaker.srt"
+)
 with open(srt_with_speaker_filename, "w", encoding="utf-8-sig") as srt:
     write_srt(ssm, srt, include_speaker=True)
 
 # Write SRT without speaker attribution
 logger.info(" Writing Transcript to SRT File without Speaker Attribution")
-srt_without_speaker_filename = f"{current_datetime}_{os.path.splitext(args.audio)[0]}_without_speaker.srt"
+srt_without_speaker_filename = os.path.join(
+    os.path.dirname(args.audio),
+    f"{current_datetime}_{os.path.basename(os.path.splitext(args.audio)[0])}_without_speaker.srt"
+)
 with open(srt_without_speaker_filename, "w", encoding="utf-8-sig") as srt:
     write_srt(ssm, srt, include_speaker=False)
 
