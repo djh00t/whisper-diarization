@@ -99,6 +99,9 @@ parser.add_argument(
 
 args = parser.parse_args()
 
+# Initialize language variable
+language = args.language
+
 # Handle language detection failure
 if language is None:
     language = "en"  # Set a default language if detection fails
