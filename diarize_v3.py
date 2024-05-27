@@ -95,16 +95,15 @@ print("#" * 79)
 # Model Selection - Check if selected model is Whisper or Canary
 if model_name.startswith("whisper-"):
     from transcription_models.whisper_model import transcribe_batched as whisper_transcribe_batched, WHISPER_MODELS
+    model = None
     model_name = WHISPER_MODELS[model_name]
     print("#" * 79)
     print(f"DEBUG: Model Name: {model_name}")
-    model = None
 elif model_name.startswith("canary-"):
     from transcription_models.canary_model_v4 import transcribe_batched as canary_transcribe_batched, CANARY_MODELS
-    model_name = CANARY_MODELS[model_name]
+    model = load_canary_model(CANARY_MODELS[model_name], args.device)
     print("#" * 79)
     print(f"DEBUG: Model Name: {model_name}")
-    model = load_canary_model(model_name, args.device)
 else:
     raise ValueError(f"Unsupported transcription model: {args.transcription_model}")
 
