@@ -1,6 +1,5 @@
 import warnings
-import logging
-import sys
+from utils import setup_logger
 
 warnings.filterwarnings("ignore", message="torchaudio._backend.set_audio_backend has been deprecated")
 
@@ -92,18 +91,8 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-# Configure logger
-logging.basicConfig(
-    level=logging.DEBUG if args.debug else logging.INFO,
-    format='%(asctime)s %(name)s %(levelname)s: %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
-)
-logger = logging.getLogger(__name__)
-
-if args.debug:
-    logger.debug("Debug logging enabled")
+# Setup logger
+logger = setup_logger(args.debug)
 
 # Initialize language variable
 language = args.language
