@@ -427,9 +427,11 @@ ssm = get_sentences_speaker_mapping(wsm, speaker_ts)
 
 # Write pre-diarization transcript to text file
 logger.info(" Writing Pre-Diarization Transcript to Text File")
+model_name_for_filename = model_name.replace("/", "_")
+
 pre_diarization_filename = os.path.join(
     os.path.dirname(args.audio),
-    f"{current_datetime}_{os.path.basename(os.path.splitext(args.audio)[0])}_pre_diarization.txt"
+    f"{current_datetime}_{os.path.basename(os.path.splitext(args.audio)[0])}_{model_name_for_filename}_pre_diarization.txt"
 )
 with open(pre_diarization_filename, "w", encoding="utf-8-sig") as f:
     get_speaker_aware_transcript(ssm, f, pre_diarization=True)
@@ -438,7 +440,7 @@ with open(pre_diarization_filename, "w", encoding="utf-8-sig") as f:
 logger.info(" Writing Post-Diarization Speaker-Aware Transcript to Text File")
 post_diarization_filename = os.path.join(
     os.path.dirname(args.audio),
-    f"{current_datetime}_{os.path.basename(os.path.splitext(args.audio)[0])}_post_diarization.txt"
+    f"{current_datetime}_{os.path.basename(os.path.splitext(args.audio)[0])}_{model_name_for_filename}_post_diarization.txt"
 )
 with open(post_diarization_filename, "w", encoding="utf-8-sig") as f:
     get_speaker_aware_transcript(ssm, f, pre_diarization=False)
@@ -447,7 +449,7 @@ with open(post_diarization_filename, "w", encoding="utf-8-sig") as f:
 logger.info(" Writing Speaker-Aware Transcript to SRT File")
 srt_with_speaker_filename = os.path.join(
     os.path.dirname(args.audio),
-    f"{current_datetime}_{os.path.basename(os.path.splitext(args.audio)[0])}_with_speaker.srt"
+    f"{current_datetime}_{os.path.basename(os.path.splitext(args.audio)[0])}_{model_name_for_filename}_with_speaker.srt"
 )
 with open(srt_with_speaker_filename, "w", encoding="utf-8-sig") as srt:
     write_srt(ssm, srt, include_speaker=True)
@@ -456,7 +458,7 @@ with open(srt_with_speaker_filename, "w", encoding="utf-8-sig") as srt:
 logger.info(" Writing Transcript to SRT File without Speaker Attribution")
 srt_without_speaker_filename = os.path.join(
     os.path.dirname(args.audio),
-    f"{current_datetime}_{os.path.basename(os.path.splitext(args.audio)[0])}_without_speaker.srt"
+    f"{current_datetime}_{os.path.basename(os.path.splitext(args.audio)[0])}_{model_name_for_filename}_without_speaker.srt"
 )
 with open(srt_without_speaker_filename, "w", encoding="utf-8-sig") as srt:
     write_srt(ssm, srt, include_speaker=False)
