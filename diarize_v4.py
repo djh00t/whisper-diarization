@@ -55,6 +55,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+if args.debug:
+    logger.setLevel(logging.DEBUG)
+    for handler in logger.handlers:
+        handler.setLevel(logging.DEBUG)
+    logger.debug("Debug logging enabled")
+
 if args.debug:
     logger.setLevel(logging.DEBUG)
     for handler in logger.handlers:
