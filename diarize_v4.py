@@ -73,7 +73,7 @@ parser.add_argument(
 parser.add_argument(
     "--language",
     type=str,
-    default=None,
+    default='en',
     choices=whisper_langs,
     help="Language spoken in the audio, specify None to perform language detection",
 )
@@ -184,15 +184,12 @@ alignment_model, alignment_tokenizer, alignment_dictionary = load_alignment_mode
     dtype=torch.float16 if args.device == "cuda" else torch.float32,
 )
 
-# Ensure audio waveform is a torch tensor, converted to mono, and on the correct device with the right dtype
+# Ensure audio waveform is a torch tensor and on the correct device with the right dtype
 logger.info(" Converting Audio Waveform to Tensor")
 audio_waveform = torch.tensor(audio_waveform).to(args.device).to(alignment_model.dtype)
-if audio_waveform.dim() == 2 and audio_waveform.shape[0] > 1:
-    logger.info(" Converting Audio Waveform to Mono")
-    audio_waveform = torch.mean(audio_waveform, dim=0, keepdim=True)
-elif audio_waveform.dim() == 1:
+if audio_waveform.dim() == 1:
     audio_waveform = audio_waveform.unsqueeze(0)  # Add batch dimension if not present
-logger.debug(f"Audio Waveform Tensor Shape after ensuring mono: {audio_waveform.shape}")
+logger.debug(f"Audio Waveform Tensor Shape: {audio_waveform.shape}")
 
 # Split audio waveform for forced alignment
 window_size = 30 * 16000  # 30 seconds window size in samples
@@ -210,9 +207,7 @@ logger.info(" Performing Forced Alignment on Audio Segments")
 for idx, segment in enumerate(audio_waveform_segments):
     logger.debug(f"Processing Segment {idx + 1}/{len(audio_waveform_segments)} with Shape: {segment.shape}")
     try:
-        padded_waveform = segment.squeeze(0)  # Remove batch dimension if present
-        if padded_waveform.dim() == 1:
-            padded_waveform = padded_waveform.unsqueeze(0)  # Ensure 2D tensor
+        padded_waveform = segment.squeeze(0)  # Remove batch dimension
         logger.debug(f"Padded Waveform Shape: {padded_waveform.shape}")
         
         segment_emissions, segment_stride = generate_emissions(
@@ -223,7 +218,7 @@ for idx, segment in enumerate(audio_waveform_segments):
         stride = segment_stride
         logger.info(f" Segment {idx + 1}/{len(audio_waveform_segments)} Alignment Complete")
     except RuntimeError as e:
-        logger.error(f" Processing Segment {idx + 1}/{len(audio_waveform_segments)} failed with error: {e}")
+        logger.error(f"Processing Segment {idx + 1}/{len(audio_waveform_segments)} failed with error: {e}")
         break
 
 # Verify emissions before concatenation
