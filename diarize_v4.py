@@ -308,7 +308,7 @@ logger.info(f" Normalized file saved to: {os.path.join(temp_path, 'mono_file.wav
 
 # Initialize NeMo MSDD diarization model
 logger.info(" Initializing NeMo MSDD Diarization Model")
-msdd_model = NeuralDiarizer(cfg=create_config(temp_path)).to(args.device)
+msdd_model = NeuralDiarizer(cfg=create_config(temp_path, logger)).to(args.device)
 
 # Perform Speaker Diarization
 logger.info(" Performing Speaker Diarization")
