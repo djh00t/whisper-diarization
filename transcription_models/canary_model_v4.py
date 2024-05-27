@@ -13,6 +13,10 @@ def load_canary_model(model_name, device):
     print(f"DEBUG: Device: {device}")
     try:
         model = EncDecMultiTaskModel.from_pretrained(model_name)
+        decode_cfg = model.cfg.decoding
+        decode_cfg.beam.beam_size = 1
+        model.change_decoding_strategy(decode_cfg)
+        
     except Exception as e:
         raise ValueError(f"Failed to load model {model_name} from Hugging Face: {e}")
 
@@ -59,7 +63,7 @@ def transcribe_batched(
             temp_audio_file = save_audio_to_tempfile(batch, 16000)
             print(f"DEBUG: Transcribing Audio Batch: {temp_audio_file}")
 
-            transcription = model.transcribe(audio=[temp_audio_file])
+            transcription = model.transcribe(audio=[temp_audio_file], batch_size=batch_size, pnc="no", source_lang=language, target_lang=language)
             print(f"DEBUG: Transcription Output: \n{transcription}")
 
             segment_duration = batch_duration / len(transcription)
