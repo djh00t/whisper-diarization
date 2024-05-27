@@ -107,6 +107,7 @@ if args.stemming:
     return_code = os.system(
         f'python -m demucs.separate -n htdemucs --two-stems=vocals "{args.audio}" -o "temp_outputs"',
         logger,
+        logger,
     )
 
     if return_code != 0:
